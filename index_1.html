@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador IS-LM — Carolina Felipe· UADE</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#ffffff;--bg2:#f8f8f7;--bg3:#f1f0ed;
+    --text:#0d0d0c;--text2:#52514e;--text3:#898781;
+    --border:#e1e0d9;--accent:#2a78d6;--accent-bg:#e9f1fb;--accent-text:#185fa5;
+    --green:#0ca30c;--green-bg:#eaf3de;--green-text:#3b6d11;
+    --red:#d03b3b;--red-bg:#fcebeb;--red-text:#a32d2d;
+    --amber:#ba7517;--amber-bg:#faeeda;--amber-text:#854f0b;
+    --radius:8px;--shadow:0 1px 4px rgba(0,0,0,0.08);
+  }
+  @media(prefers-color-scheme:dark){
+    :root{
+      --bg:#1a1a19;--bg2:#232321;--bg3:#2c2c2a;
+      --text:#f5f5f0;--text2:#c3c2b7;--text3:#898781;
+      --border:#3a3a38;--accent:#3987e5;--accent-bg:#0c1e3a;--accent-text:#85b7eb;
+      --green:#199e70;--green-bg:#0a2a1c;--green-text:#9fe1cb;
+      --red:#e66767;--red-bg:#2a0f0f;--red-text:#f7c1c1;
+      --amber:#ef9f27;--amber-bg:#2a1a00;--amber-text:#fac775;
+    }
+  }
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0 0 40px}
+  .header{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .header h1{font-size:18px;font-weight:600;color:var(--text)}
+  .header p{font-size:13px;color:var(--text2)}
+  .badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 10px;border-radius:20px;background:var(--accent-bg);color:var(--accent-text);font-weight:500;border:1px solid var(--accent-bg)}
+  .app{max-width:1020px;margin:0 auto;padding:20px 20px 0}
+
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px}
+  .card-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+
+  .param-row{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+  .param-label{font-size:13px;color:var(--text2);min-width:120px}
+  .param-sym{font-size:13px;color:var(--text3);font-style:italic;min-width:18px}
+  .param-val{font-size:13px;font-weight:600;color:var(--text);min-width:54px;text-align:right;font-variant-numeric:tabular-nums}
+  input[type=range]{flex:1;accent-color:var(--accent);height:4px;cursor:pointer}
+
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+  .metric{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center}
+  .metric-lbl{font-size:11px;color:var(--text3);margin-bottom:4px}
+  .metric-val{font-size:22px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums}
+  .metric-sub{font-size:12px;margin-top:3px;font-variant-numeric:tabular-nums}
+  .up{color:var(--green)}.down{color:var(--red)}.zero{color:var(--text3)}
+
+  .section-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:10px}
+  .policy-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+  .tab{padding:5px 13px;border-radius:20px;font-size:12.5px;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--text2);transition:all .12s;user-select:none}
+  .tab:hover{background:var(--bg3)}
+  .tab.active{background:var(--accent-bg);color:var(--accent-text);border-color:var(--accent);font-weight:600}
+
+  .oa-row{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .oa-lbl{font-size:13px;color:var(--text2);font-weight:500}
+  .oa-btn{padding:4px 12px;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--text2);transition:all .12s}
+  .oa-btn.active{background:var(--green-bg);color:var(--green-text);border-color:var(--green)}
+
+  .charts4{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+  .chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px}
+  .chart-lbl{font-size:12.5px;font-weight:600;color:var(--text2);text-align:center;margin-bottom:10px}
+  .chart-wrap{position:relative;height:380px}
+
+  .policy-box{background:var(--amber-bg);border:1px solid var(--amber);border-radius:12px;padding:14px;margin-bottom:16px;display:none}
+  .policy-box-title{font-size:13px;font-weight:600;color:var(--amber-text);margin-bottom:10px}
+  .policy-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .policy-cell{background:var(--bg);border-radius:var(--radius);padding:8px 10px;text-align:center;border:1px solid var(--border)}
+  .policy-cell-lbl{font-size:10px;color:var(--text3);margin-bottom:3px}
+  .policy-cell-val{font-size:14px;font-weight:600;color:var(--text)}
+
+  .chain-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:0}
+  .chain-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px}
+  .chain-steps{display:flex;flex-direction:column;gap:6px}
+  .step{display:flex;align-items:flex-start;gap:9px;font-size:13px;color:var(--text);line-height:1.5}
+  .step-num{flex-shrink:0;font-size:11px;font-weight:600;background:var(--bg3);border-radius:20px;padding:1px 7px;min-width:24px;text-align:center;margin-top:1px;color:var(--text2)}
+  .step-labor{background:var(--green-bg);color:var(--green-text)}
+  .step-text{font-family:'SF Mono',Menlo,Monaco,'Cascadia Mono','Courier New',monospace;font-size:12.5px;line-height:1.65}
+  .chain-footer{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .pill{font-size:11px;padding:3px 10px;border-radius:20px;background:var(--bg3);border:1px solid var(--border);color:var(--text2)}
+  .sep{height:1px;background:var(--border);margin:16px 0}
+
+  @media(max-width:900px){
+    .charts4{grid-template-columns:1fr}
+    .chart-wrap{height:320px}
+  }
+  @media(max-width:640px){
+    .row2,.metrics{grid-template-columns:1fr}
+    .param-label{min-width:90px;font-size:12px}
+    .chart-wrap{height:280px}
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Simulador Macroeconómico IS-LM</h1>
+    <p>Modelo de 4 mercados · Equilibrio, política económica y cadena causal</p>
+  </div>
+  <span class="badge">Prof. Gonzalo Bernat · UADE</span>
+</div>
+
+<div class="app">
+
+  <div class="row2">
+    <div class="card">
+      <div class="card-title">Política económica</div>
+      <div class="param-row"><span class="param-label">Gasto público</span><span class="param-sym">G</span><input type="range" id="G" min="50" max="800" step="10" value="300"><span class="param-val" id="Gv">300</span></div>
+      <div class="param-row"><span class="param-label">Oferta monetaria</span><span class="param-sym">M</span><input type="range" id="M" min="200" max="3000" step="50" value="1600"><span class="param-val" id="Mv">1600</span></div>
+      <div class="param-row"><span class="param-label">Impuestos (fijo)</span><span class="param-sym">T</span><input type="range" id="T" min="0" max="400" step="10" value="100"><span class="param-val" id="Tv">100</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Parámetros estructurales</div>
+      <div class="param-row"><span class="param-label">Prop. a consumir</span><span class="param-sym">c₁</span><input type="range" id="c1" min="0.3" max="0.95" step="0.05" value="0.6"><span class="param-val" id="c1v">0.60</span></div>
+      <div class="param-row"><span class="param-label">Inversión autónoma</span><span class="param-sym">I₀</span><input type="range" id="I0" min="50" max="500" step="10" value="150"><span class="param-val" id="I0v">150</span></div>
+      <div class="param-row"><span class="param-label">Sensib. I a tasa</span><span class="param-sym">b</span><input type="range" id="b" min="100" max="2500" step="50" value="1000"><span class="param-val" id="bv">1000</span></div>
+      <div class="param-row"><span class="param-label">Sensib. L a Y</span><span class="param-sym">k</span><input type="range" id="kk" min="0.5" max="5" step="0.5" value="2"><span class="param-val" id="kkv">2.0</span></div>
+      <div class="param-row"><span class="param-label">Sensib. L a i</span><span class="param-sym">h</span><input type="range" id="hh" min="100" max="3000" step="100" value="1000"><span class="param-val" id="hhv">1000</span></div>
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="metric-lbl">Ingreso de equilibrio (Y*)</div><div class="metric-val" id="Yeq">—</div><div class="metric-sub" id="Ydelta"></div></div>
+    <div class="metric"><div class="metric-lbl">Tasa de interés (i*)</div><div class="metric-val" id="ieq">—</div><div class="metric-sub" id="idelta"></div></div>
+    <div class="metric"><div class="metric-lbl">Inversión (I*)</div><div class="metric-val" id="Ieq">—</div><div class="metric-sub" id="Idelta"></div></div>
+    <div class="metric"><div class="metric-lbl">Multiplicador (α)</div><div class="metric-val" id="mult">—</div><div class="metric-sub" id="multdetail"></div></div>
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="section-title">Análisis de política</div>
+  <div class="policy-tabs">
+    <div class="tab active" onclick="setPolicy('none',this)">Sin política</div>
+    <div class="tab" onclick="setPolicy('fe',this)">Fiscal expansiva ↑G</div>
+    <div class="tab" onclick="setPolicy('fc',this)">Fiscal contractiva ↓G</div>
+    <div class="tab" onclick="setPolicy('me',this)">Monetaria expansiva ↑M</div>
+    <div class="tab" onclick="setPolicy('mc',this)">Monetaria contractiva ↓M</div>
+    <div class="tab" onclick="setPolicy('ac1',this)">Acomodaticia 1 (↑G+↑M)</div>
+    <div class="tab" onclick="setPolicy('ac2',this)">Acomodaticia 2 (↑G+↓M)</div>
+  </div>
+
+  <div class="oa-row">
+    <span class="oa-lbl">Caso OA:</span>
+    <button class="oa-btn active" onclick="setOA('keynesiano',this)">Keynesiano extremo</button>
+    <button class="oa-btn" onclick="setOA('intermedio',this)">Keynesiano intermedio</button>
+    <button class="oa-btn" onclick="setOA('clasico',this)">Clásico (largo plazo)</button>
+  </div>
+
+  <div class="policy-box" id="policyBox">
+    <div class="policy-box-title" id="pbTitle"></div>
+    <div class="policy-grid" id="pbGrid"></div>
+  </div>
+
+  <div class="charts4">
+    <div class="chart-card"><div class="chart-lbl">IS-LM · i vs Y</div><div class="chart-wrap"><canvas id="cISLM" role="img" aria-label="Gráfico IS-LM"></canvas></div></div>
+    <div class="chart-card"><div class="chart-lbl">Mercado de dinero · i vs M/P</div><div class="chart-wrap"><canvas id="cDinero" role="img" aria-label="Mercado de dinero"></canvas></div></div>
+    <div class="chart-card"><div class="chart-lbl">OA-DA · P vs Y</div><div class="chart-wrap"><canvas id="cOADA" role="img" aria-label="Oferta y demanda agregada"></canvas></div></div>
+    <div class="chart-card"><div class="chart-lbl">Mercado de trabajo · W vs N</div><div class="chart-wrap"><canvas id="cTrabajo" role="img" aria-label="Mercado de trabajo"></canvas></div></div>
+  </div>
+
+  <div class="chain-box">
+    <div class="chain-title" id="chainTitle">Cadena causal — equilibrio inicial</div>
+    <div class="chain-steps" id="chainSteps"></div>
+    <div class="chain-footer" id="chainFooter"></div>
+  </div>
+
+</div>
+
+<script>
+const BLUE='#2a78d6', RED='#e34948', GREEN='#1baf7a', BLACK='#0b0b0b', AMBER='#eda100';
+const BLUE_D='#3987e5', RED_D='#e66767', GREEN_D='#199e70';
+let charts={}, policy='none', oaType='keynesiano';
+
+function isDark(){return matchMedia('(prefers-color-scheme:dark)').matches}
+function gc(){return isDark()?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.07)'}
+function tc(){return isDark()?'#898781':'#898781'}
+function isC(){return isDark()?BLUE_D:BLUE}
+function lmC(){return isDark()?RED_D:RED}
+function oaC(){return isDark()?GREEN_D:GREEN}
+
+// Genera una curva "suavizada" tipo hipérbola entre dos extremos conocidos.
+// yStart/yEnd son los valores reales del modelo lineal en t=0 y t=1.
+// La curva pasa exactamente por esos dos puntos, pero se curva de forma
+// convexa (cae rápido al principio y se aplana después), como una curva
+// de demanda de dinero / demanda agregada clásica.
+function curvedFromEndpoints(n, yStart, yEnd, p=2.3){
+  const out=[];
+  for(let i=0;i<n;i++){
+    const t=i/(n-1);
+    const f=Math.pow(1-t,p);
+    out.push(yEnd+(yStart-yEnd)*f);
+  }
+  return out;
+}
+
+function P(){
+  return{
+    G:+document.getElementById('G').value,
+    M:+document.getElementById('M').value,
+    T:+document.getElementById('T').value,
+    c1:+document.getElementById('c1').value,
+    I0:+document.getElementById('I0').value,
+    b:+document.getElementById('b').value,
+    k:+document.getElementById('kk').value,
+    h:+document.getElementById('hh').value
+  }
+}
+
+function solve(p){
+  const A=p.I0+p.G-p.c1*p.T;
+  const denom=(1-p.c1)+(p.b*p.k)/p.h;
+  const Y=(A+(p.b*p.M)/p.h)/denom;
+  const i=(p.k*Y-p.M)/p.h;
+  const I=p.I0-p.b*i;
+  const alpha=1/(1-p.c1);
+  const mult_is_lm=alpha*p.h/(p.h+alpha*p.b*p.k);
+  return{Y:Math.round(Y*10)/10, i:Math.round(i*100000)/100000, I:Math.round(I*10)/10, A, alpha:Math.round(alpha*100)/100, mult_is_lm:Math.round(mult_is_lm*100)/100}
+}
+
+function fmtN(n,d=0){return isNaN(n)?'—':n.toFixed(d)}
+function fmtPct(i){return isNaN(i)?'—':(i*100).toFixed(2)+'%'}
+function fmtDelta(d, unit='n'){
+  if(isNaN(d)) return '';
+  const isBig=unit==='n';
+  if(isBig && Math.abs(d)<0.5) return '<span class="zero">sin cambio</span>';
+  if(!isBig && Math.abs(d)<0.0001) return '<span class="zero">sin cambio</span>';
+  const cls=d>0?'up':'down';
+  const arrow=d>0?'▲ +':'▼ ';
+  if(unit==='%') return `<span class="${cls}">${arrow}${(d*100).toFixed(2)}%</span>`;
+  return `<span class="${cls}">${arrow}${Math.round(Math.abs(d))}</span>`;
+}
+
+function destroyChart(id){if(charts[id]){charts[id].destroy();charts[id]=null}}
+
+const chartOpts=(xLabel,yLabel,xMin,xMax,yMin,yMax,yCb,xCb)=>({
+  responsive:true,maintainAspectRatio:false,animation:false,
+  scales:{
+    x:{type:'linear',min:xMin,max:xMax,title:{display:true,text:xLabel,color:tc(),font:{size:12}},ticks:{color:tc(),maxTicksLimit:6,callback:xCb||(v=>Math.round(v))},grid:{color:gc()}},
+    y:{type:'linear',min:yMin,max:yMax,title:{display:true,text:yLabel,color:tc(),font:{size:12}},ticks:{color:tc(),maxTicksLimit:6,callback:yCb},grid:{color:gc()}}
+  },
+  plugins:{legend:{display:true,position:'top',labels:{font:{size:12},color:tc(),boxWidth:14,padding:8}},tooltip:{mode:'nearest',intersect:false}}
+});
+
+function drawISLM(p,p2){
+  destroyChart('islm');
+  const eq=solve(p); const maxY=eq.Y*1.75;
+  const ys=Array.from({length:120},(_,i)=>i*maxY/120);
+  const isIS=ys.map(y=>(eq.A-(1-p.c1)*y)/p.b);
+  const isLM=ys.map(y=>(p.k*y-p.M)/p.h);
+  const allI=[...isIS,...isLM].filter(isFinite);
+  const yMin=Math.min(0,...allI)-0.01, yMax=Math.max(...allI)+0.02;
+  const ds=[
+    {label:'IS',data:ys.map((y,i)=>({x:y,y:isIS[i]})),borderColor:isC(),borderWidth:2.2,pointRadius:0,tension:0,fill:false},
+    {label:'LM',data:ys.map((y,i)=>({x:y,y:isLM[i]})),borderColor:lmC(),borderWidth:2.2,pointRadius:0,tension:0,fill:false},
+    {label:'E₀',data:[{x:eq.Y,y:eq.i}],borderColor:BLACK,backgroundColor:BLACK,pointRadius:6,showLine:false}
+  ];
+  if(p2){
+    const eq2=solve(p2);
+    const A2=eq2.A;
+    const is2=ys.map(y=>(A2-(1-p2.c1)*y)/p2.b);
+    const lm2=ys.map(y=>(p2.k*y-p2.M)/p2.h);
+    ds.push({label:'IS₁',data:ys.map((y,i)=>({x:y,y:is2[i]})),borderColor:isC(),borderWidth:1.6,borderDash:[5,4],pointRadius:0,tension:0,fill:false});
+    ds.push({label:'LM₁',data:ys.map((y,i)=>({x:y,y:lm2[i]})),borderColor:lmC(),borderWidth:1.6,borderDash:[5,4],pointRadius:0,tension:0,fill:false});
+    ds.push({label:'E₁',data:[{x:eq2.Y,y:eq2.i}],borderColor:GREEN,backgroundColor:GREEN,pointRadius:6,showLine:false});
+  }
+  charts['islm']=new Chart(document.getElementById('cISLM'),{type:'line',data:{datasets:ds},options:chartOpts('Y','i',0,maxY,yMin,yMax,v=>(v*100).toFixed(1)+'%')});
+}
+
+function drawDinero(p,p2){
+  destroyChart('dinero');
+  const eq=solve(p); const mp=p.M, maxMP=mp*2.2;
+  const N=90;
+  const mps=Array.from({length:N},(_,i)=>i*maxMP/(N-1));
+  // Curva de demanda de dinero (Lᵈ): pendiente negativa, suavizada (convexa),
+  // ancla en los mismos extremos que la recta real del modelo (m=0 y m=maxMP).
+  const LdStart=(p.k*eq.Y-0)/p.h;
+  const LdEnd=(p.k*eq.Y-maxMP)/p.h;
+  const Ls=curvedFromEndpoints(N,LdStart,LdEnd);
+  const iEq=eq.i; const yMax=Math.max(Math.max(iEq,LdStart)*1.3+0.02, 0.15);
+  const ds=[
+    {label:'Lᵈ₀',data:mps.map((m,i)=>({x:m,y:Ls[i]})),borderColor:isC(),borderWidth:2.4,pointRadius:0,tension:0.35,cubicInterpolationMode:'monotone',fill:false},
+    // Mˢ/P: siempre vertical — la oferta monetaria real no depende de i
+    {label:'Mˢ/P',data:[{x:mp,y:0},{x:mp,y:yMax}],borderColor:lmC(),borderWidth:2.4,pointRadius:0,fill:false},
+    {label:'E₀',data:[{x:mp,y:iEq}],borderColor:BLACK,backgroundColor:BLACK,pointRadius:6,showLine:false}
+  ];
+  if(p2){
+    const eq2=solve(p2); const mp2=p2.M;
+    const LdStart2=(p2.k*eq2.Y-0)/p2.h;
+    const LdEnd2=(p2.k*eq2.Y-maxMP)/p2.h;
+    const Ls2=curvedFromEndpoints(N,LdStart2,LdEnd2);
+    ds.push({label:'Mˢ₁/P',data:[{x:mp2,y:0},{x:mp2,y:yMax}],borderColor:lmC(),borderWidth:1.8,borderDash:[5,4],pointRadius:0,fill:false});
+    ds.push({label:'Lᵈ₁',data:mps.map((m,i)=>({x:m,y:Ls2[i]})),borderColor:isC(),borderWidth:1.8,borderDash:[5,4],pointRadius:0,tension:0.35,cubicInterpolationMode:'monotone',fill:false});
+    ds.push({label:'E₁',data:[{x:mp2,y:eq2.i}],borderColor:GREEN,backgroundColor:GREEN,pointRadius:6,showLine:false});
+  }
+  charts['dinero']=new Chart(document.getElementById('cDinero'),{type:'line',data:{datasets:ds},options:chartOpts('M/P','i',0,maxMP,0,yMax,v=>(v*100).toFixed(1)+'%')});
+}
+
+function drawOADA(p,p2,oaT){
+  destroyChart('oada');
+  const eq=solve(p); const maxY=eq.Y*1.9, maxP=2.8;
+  const N=100;
+  const ys=Array.from({length:N},(_,i)=>i*maxY/(N-1));
+  // Curva DA: pendiente negativa, suavizada (convexa), misma idea que Lᵈ.
+  const DaStart=Math.max(0.05,1+(eq.Y-0)*0.002);
+  const DaEnd=Math.max(0.05,1+(eq.Y-maxY)*0.002);
+  const da0=curvedFromEndpoints(N,DaStart,DaEnd);
+  const ds=[
+    {label:'DA₀',data:ys.map((y,i)=>({x:y,y:da0[i]})),borderColor:RED,borderWidth:2.4,pointRadius:0,tension:0.3,cubicInterpolationMode:'monotone',fill:false}
+  ];
+  if(p2){
+    const eq2=solve(p2);
+    const Da1Start=Math.max(0.05,1+(eq2.Y-0)*0.002+(eq2.Y-eq.Y)*0.0008);
+    const Da1End=Math.max(0.05,1+(eq2.Y-maxY)*0.002+(eq2.Y-eq.Y)*0.0008);
+    const da1=curvedFromEndpoints(N,Da1Start,Da1End);
+    ds.push({label:'DA₁',data:ys.map((y,i)=>({x:y,y:da1[i]})),borderColor:RED,borderWidth:1.8,borderDash:[5,4],pointRadius:0,tension:0.3,cubicInterpolationMode:'monotone',fill:false});
+  }
+  const Ys=eq.Y;
+  if(oaT==='keynesiano'){
+    ds.push({label:'OA (keynes.)',data:ys.map(y=>({x:y,y:1.0})),borderColor:oaC(),borderWidth:2.6,pointRadius:0,fill:false});
+    ds.push({label:'E₀',data:[{x:Ys,y:1.0}],borderColor:BLACK,backgroundColor:BLACK,pointRadius:6,showLine:false});
+    if(p2){const eq2=solve(p2);ds.push({label:'E₁',data:[{x:eq2.Y,y:1.0}],borderColor:GREEN,backgroundColor:GREEN,pointRadius:6,showLine:false});}
+  } else if(oaT==='intermedio'){
+    ds.push({label:'OA (interm.)',data:ys.map(y=>({x:y,y:Math.max(0.1,0.2+0.0014*y)})),borderColor:oaC(),borderWidth:2.6,pointRadius:0,tension:0.2,fill:false});
+    const P0=0.2+0.0014*Ys;
+    ds.push({label:'E₀',data:[{x:Ys,y:P0}],borderColor:BLACK,backgroundColor:BLACK,pointRadius:6,showLine:false});
+    if(p2){const eq2=solve(p2);const P1=P0+(eq2.Y-Ys)*0.0008;ds.push({label:'E₁',data:[{x:(Ys+eq2.Y)/2+0.05,y:P0+(P1-P0)*0.55}],borderColor:GREEN,backgroundColor:GREEN,pointRadius:6,showLine:false});}
+  } else {
+    ds.push({label:'OA (clásica)',data:[{x:Ys,y:0},{x:Ys,y:maxP}],borderColor:oaC(),borderWidth:2.6,pointRadius:0,fill:false});
+    ds.push({label:'E₀',data:[{x:Ys,y:1.0}],borderColor:BLACK,backgroundColor:BLACK,pointRadius:6,showLine:false});
+    if(p2){ds.push({label:'E₁',data:[{x:Ys,y:1.8}],borderColor:GREEN,backgroundColor:GREEN,pointRadius:6,showLine:false});}
+  }
+  charts['oada']=new Chart(document.getElementById('cOADA'),{type:'line',data:{datasets:ds},options:chartOpts('Y','P',0,maxY,0,maxP,v=>v.toFixed(1))});
+}
+
+function drawTrabajo(p,p2,oaT){
+  destroyChart('trabajo');
+  const Ns=Array.from({length:80},(_,i)=>i*220/80);
+  const nd0=Ns.map(n=>({x:n,y:Math.max(0,8.5-0.065*n)}));
+  const ns0=Ns.map(n=>({x:n,y:Math.max(0,0.055*n)}));
+  const ds=[
+    {label:'Nᵈ₀',data:nd0,borderColor:RED,borderWidth:2.2,pointRadius:0,tension:0,fill:false},
+    {label:'Nˢ₀',data:ns0,borderColor:oaC(),borderWidth:2.2,pointRadius:0,tension:0,fill:false},
+    {label:'E₀',data:[{x:80,y:4.4}],borderColor:BLACK,backgroundColor:BLACK,pointRadius:6,showLine:false}
+  ];
+  if(p2 && oaT!=='keynesiano'){
+    if(oaT==='intermedio'){
+      ds.push({label:'Nᵈ₁',data:Ns.map(n=>({x:n,y:Math.max(0,10-0.065*n)})),borderColor:RED,borderWidth:1.6,borderDash:[5,4],pointRadius:0,fill:false});
+      ds.push({label:'Nˢ₁',data:Ns.map(n=>({x:n,y:Math.max(0,0.058*n+0.4)})),borderColor:oaC(),borderWidth:1.6,borderDash:[5,4],pointRadius:0,fill:false});
+      ds.push({label:'E₁',data:[{x:95,y:5.9}],borderColor:GREEN,backgroundColor:GREEN,pointRadius:6,showLine:false});
+    } else {
+      ds.push({label:'Nᵈ₁',data:Ns.map(n=>({x:n,y:Math.max(0,11-0.065*n)})),borderColor:RED,borderWidth:1.6,borderDash:[5,4],pointRadius:0,fill:false});
+      ds.push({label:'Nˢ₁',data:Ns.map(n=>({x:n,y:Math.max(0,0.072*n)})),borderColor:oaC(),borderWidth:1.6,borderDash:[5,4],pointRadius:0,fill:false});
+      ds.push({label:'E₁',data:[{x:80,y:7.1}],borderColor:GREEN,backgroundColor:GREEN,pointRadius:6,showLine:false});
+    }
+  }
+  charts['trabajo']=new Chart(document.getElementById('cTrabajo'),{type:'line',data:{datasets:ds},options:chartOpts('N (empleo)','W (salario)',0,220,0,12,v=>v.toFixed(0))});
+}
+
+const POLICIES={
+  none:{lbl:'Sin política',p2:p=>null},
+  fe:{lbl:'Fiscal expansiva ↑G (+150)',p2:p=>({...p,G:p.G+150})},
+  fc:{lbl:'Fiscal contractiva ↓G (−150)',p2:p=>({...p,G:Math.max(50,p.G-150)})},
+  me:{lbl:'Monetaria expansiva ↑M (+400)',p2:p=>({...p,M:p.M+400})},
+  mc:{lbl:'Monetaria contractiva ↓M (−400)',p2:p=>({...p,M:Math.max(200,p.M-400)})},
+  ac1:{lbl:'Acomodaticia 1 — ↑G + ↑M (sin crowding-out)',p2:p=>({...p,G:p.G+150,M:p.M+400})},
+  ac2:{lbl:'Acomodaticia 2 — ↑G + ↓M (crowding-out completo)',p2:p=>({...p,G:p.G+150,M:Math.max(200,p.M-300)})}
+};
+
+const CHAINS={
+  none:()=>[
+    {n:'IS',t:'Y* = todos los (Y,i) donde DA = Y (mercado de bienes y servicios)'},
+    {n:'LM',t:'i* = todos los (Y,i) donde Mˢ/P = L (mercado de dinero)'},
+    {n:'E₀',t:'Equilibrio simultáneo: ningún mercado tiene exceso de demanda ni oferta'}
+  ],
+  fe:()=>[
+    {n:'1',t:'↑G ⇒ ↑DA ⇒ EDA (DA>Y) ⇒ ↑Y   (0→1)'},
+    {n:'2',t:'↑Y ⇒ ↑Mᵈ ⇒ EDD (=EOB) ⇒ ↑i (=↓P_B)   (0→2)'},
+    {n:'3',t:'↑i ⇒ ↓I ⇒ ↓Y — crowding-out parcial   (1→2)'},
+    {n:'',t:'↑DA ⇒ EDA ⇒ ↑P  (si no es caso keynesiano extremo)'},
+    {n:'4',t:'↑P ⇒ ↓(Mˢ/P) ⇒ EDD (=EOB) ⇒ ↑i   (2→3)'},
+    {n:'5',t:'↑i ⇒ ↓I ⇒ ↓Y   (2→4)'},
+    {n:'6',t:'↓Y ⇒ ↓Mᵈ ⇒ EOD (=EDB) ⇒ ↓i (=↑P_B)   (3→4)'},
+    {n:'4\'',t:'↑P ⇒ ↓(W/P) ⇒ ↑Nᵈ ⇒ EDN ⇒ ↑W',lb:true},
+    {n:'5\'',t:'ΔW < ΔP (ilusión monetaria) ⇒ ↑N ⇒ ↑OA   (0→4)',lb:true}
+  ],
+  fc:()=>[
+    {n:'1',t:'↓G ⇒ ↓DA ⇒ EOA (Y>DA) ⇒ ↓Y   (0→1)'},
+    {n:'2',t:'↓Y ⇒ ↓Mᵈ ⇒ EOD (=EDB) ⇒ ↓i (=↑P_B)   (0→2)'},
+    {n:'3',t:'↓i ⇒ ↑I ⇒ ↑Y — compensación parcial   (1→2)'},
+    {n:'',t:'↓DA ⇒ EOA ⇒ ↓P  (si no es caso keynesiano extremo)'},
+    {n:'4',t:'↓P ⇒ ↑(Mˢ/P) ⇒ EOD (=EDB) ⇒ ↓i   (2→3)'},
+    {n:'5',t:'↓i ⇒ ↑I ⇒ ↑Y   (2→4)'},
+    {n:'6',t:'↑Y ⇒ ↑Mᵈ ⇒ EDD (=EOB) ⇒ ↑i (=↓P_B)   (3→4)'},
+    {n:'4\'',t:'↓P ⇒ ↑(W/P) ⇒ ↓Nᵈ ⇒ EON ⇒ ↓W',lb:true},
+    {n:'5\'',t:'|ΔW| < |ΔP| (ilusión monetaria) ⇒ ↓N ⇒ ↓OA   (0→4)',lb:true}
+  ],
+  me:()=>[
+    {n:'1',t:'↑M ⇒ ↑(Mˢ/P) ⇒ EOD (=EDB) ⇒ ↓i (=↑P_B)   (0→1)'},
+    {n:'2',t:'↓i ⇒ ↑I ⇒ ↑DA ⇒ EDA ⇒ ↑Y   (0→2)'},
+    {n:'3',t:'↑Y ⇒ ↑Mᵈ ⇒ EDD (=EOB) ⇒ ↑i   (1→2)'},
+    {n:'',t:'↑DA ⇒ EDA ⇒ ↑P  (si no es caso keynesiano extremo)'},
+    {n:'4',t:'↑P ⇒ ↓(Mˢ/P) ⇒ EDD ⇒ ↑i   (2→3)'},
+    {n:'5',t:'↑i ⇒ ↓I ⇒ ↓Y   (2→4)'},
+    {n:'6',t:'↓Y ⇒ ↓Mᵈ ⇒ EOD ⇒ ↓i   (3→4)'},
+    {n:'4\'',t:'↑P ⇒ ↓(W/P) ⇒ ↑Nᵈ ⇒ EDN ⇒ ↑W',lb:true},
+    {n:'5\'',t:'ΔW < ΔP (ilusión monetaria) ⇒ ↑N ⇒ ↑OA   (0→4)',lb:true}
+  ],
+  mc:()=>[
+    {n:'1',t:'↓M ⇒ ↓(Mˢ/P) ⇒ EDD (=EOB) ⇒ ↑i (=↓P_B)   (0→1)'},
+    {n:'2',t:'↑i ⇒ ↓I ⇒ ↓DA ⇒ EOA ⇒ ↓Y   (0→2)'},
+    {n:'3',t:'↓Y ⇒ ↓Mᵈ ⇒ EOD (=EDB) ⇒ ↓i   (1→2)'},
+    {n:'',t:'↓DA ⇒ EOA ⇒ ↓P  (si no es caso keynesiano extremo)'},
+    {n:'4',t:'↓P ⇒ ↑(Mˢ/P) ⇒ EOD ⇒ ↓i   (2→3)'},
+    {n:'5',t:'↓i ⇒ ↑I ⇒ ↑Y   (2→4)'},
+    {n:'6',t:'↑Y ⇒ ↑Mᵈ ⇒ EDD ⇒ ↑i   (3→4)'},
+    {n:'4\'',t:'↓P ⇒ ↑(W/P) ⇒ ↓Nᵈ ⇒ EON ⇒ ↓W',lb:true},
+    {n:'5\'',t:'|ΔW| < |ΔP| (ilusión monetaria) ⇒ ↓N ⇒ ↓OA   (0→4)',lb:true}
+  ],
+  ac1:()=>[
+    {n:'1',t:'↑G ⇒ ↑DA ⇒ EDA ⇒ ↑Y  [simultáneo]  ↑M ⇒ ↑(Mˢ/P)   (0→4)'},
+    {n:'2',t:'↑Y ⇒ ↑Mᵈ — pero ↑Mˢ lo compensa exactamente ⇒ sin EDD ni EOD'},
+    {n:'→',t:'Como i no cambia ⇒ I no cambia ⇒ NO HAY CROWDING-OUT'},
+    {n:'=',t:'ΔY = α · ΔG  (multiplicador keynesiano pleno, sin atenuar)'}
+  ],
+  ac2:()=>[
+    {n:'1',t:'↑G ⇒ ↑DA ⇒ EDA ⇒ ↑Y   (0→1)'},
+    {n:'2',t:'↑Y ⇒ ↑Mᵈ, [simultáneo] ↓Mˢ ⇒ EDD (=EOB) ⇒ ↑i (=↓P_B)   (0→1\')'},
+    {n:'3',t:'↑i ⇒ ↓I ⇒ ↓Y   (1→2)  ——  CROWDING-OUT COMPLETO'},
+    {n:'',t:'DA = C(=) + I(↓) + G(↑)  →  cambia la composición, no el total'},
+    {n:'4',t:'↓Y ⇒ ↓Mᵈ ⇒ EOD (=EDB) ⇒ ↓i (=↑P_B)   (1\'→2)'}
+  ]
+};
+
+const OA_LABEL={
+  keynesiano:'OA keynesiana (horizontal) — P̄ fijo; todo el ajuste va a Y',
+  intermedio:'OA intermedia (creciente) — ΔW < ΔP (ilusión monetaria)',
+  clasico:'OA clásica (vertical, largo plazo) — ΔW = ΔP; Y vuelve a Y*'
+};
+
+function setPolicy(pol,el){
+  policy=pol;
+  document.querySelectorAll('.policy-tabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  redraw();
+}
+function setOA(oa,el){
+  oaType=oa;
+  document.querySelectorAll('.oa-btn').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  redraw();
+}
+
+function redraw(){
+  const p=P(); const eq=solve(p);
+  const pol=POLICIES[policy], p2=pol.p2(p), eq2=p2?solve(p2):null;
+
+  document.getElementById('Yeq').textContent=fmtN(eq.Y,0);
+  document.getElementById('ieq').textContent=fmtPct(eq.i);
+  document.getElementById('Ieq').textContent=fmtN(eq.I,0);
+  document.getElementById('mult').textContent=fmtN(eq.alpha,2);
+  document.getElementById('multdetail').innerHTML=`<span class="zero">mult. IS-LM: ${fmtN(eq.mult_is_lm,2)}</span>`;
+
+  if(eq2){
+    document.getElementById('Ydelta').innerHTML=fmtDelta(eq2.Y-eq.Y,'n');
+    document.getElementById('idelta').innerHTML=fmtDelta(eq2.i-eq.i,'%');
+    document.getElementById('Idelta').innerHTML=fmtDelta(eq2.I-eq.I,'n');
+  } else {
+    ['Ydelta','idelta','Idelta'].forEach(id=>document.getElementById(id).innerHTML='');
+  }
+
+  drawISLM(p,p2); drawDinero(p,p2); drawOADA(p,p2,oaType); drawTrabajo(p,p2,oaType);
+
+  const box=document.getElementById('policyBox');
+  if(policy!=='none' && eq2){
+    box.style.display='block';
+    document.getElementById('pbTitle').textContent=pol.lbl;
+    const dY=eq2.Y-eq.Y, di=eq2.i-eq.i, dI=eq2.I-eq.I;
+    const isFisc=policy==='fe'||policy==='fc';
+    const shockG=isFisc?150:0;
+    const multSimple=eq.alpha*shockG;
+    const cells=[
+      {l:'ΔY',v:fmtDelta(dY,'n')},
+      {l:'Δi',v:fmtDelta(di,'%')},
+      {l:'ΔI',v:fmtDelta(dI,'n')},
+    ];
+    if(policy==='fe'){
+      cells.push({l:'Mult. simple (α·ΔG)',v:`<span style="color:var(--text)">${Math.round(multSimple)}</span>`});
+      cells.push({l:'ΔY real (IS-LM)',v:`<span class="up">+${Math.round(dY)}</span>`});
+      cells.push({l:'Efecto expulsión',v:`<span class="down">−${Math.round(multSimple-dY)}</span>`});
+    }
+    document.getElementById('pbGrid').innerHTML=cells.map(c=>`<div class="policy-cell"><div class="policy-cell-lbl">${c.l}</div><div class="policy-cell-val">${c.v}</div></div>`).join('');
+  } else {
+    box.style.display='none';
+  }
+
+  document.getElementById('chainTitle').textContent='Cadena causal — '+(policy==='none'?'Equilibrio inicial':pol.lbl);
+  const steps=CHAINS[policy](eq,eq2);
+  document.getElementById('chainSteps').innerHTML=steps.map(s=>`<div class="step"><span class="step-num${s.lb?' step-labor':''}">${s.n||'→'}</span><span class="step-text">${s.t}</span></div>`).join('');
+  document.getElementById('chainFooter').innerHTML=`<span class="pill">Caso OA: ${OA_LABEL[oaType]}</span>`;
+}
+
+['G','M','T','c1','I0','b','kk','hh'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',function(){
+    const v=parseFloat(this.value);
+    const out=document.getElementById(id+'v');
+    if(id==='c1') out.textContent=v.toFixed(2);
+    else if(id==='kk') out.textContent=v.toFixed(1);
+    else out.textContent=Math.round(v);
+    redraw();
+  });
+});
+redraw();
+</script>
+</body>
+</html>
